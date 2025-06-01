@@ -1,15 +1,13 @@
 use crate::pubspeclock::{PackageVersion, Sha256};
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PubPackageVersion {
     pub version: PackageVersion,
-    // We're ignoring the pubspec field as requested
-    #[serde(skip)]
-    pub pubspec: serde::de::IgnoredAny,
     pub archive_url: String,
     pub archive_sha256: Sha256,
-    pub published: String, // or use chrono::DateTime<Utc> if you want parsed dates
+    pub published: DateTime<Utc>,
 }
 
 impl PubPackageVersion {

@@ -1,5 +1,6 @@
 #[cfg(test)]
 mod tests {
+    use chrono::DateTime;
     use flutter_pub::pubpackage::PubPackageVersion;
     use flutter_pub::pubspeclock::{PackageVersion, Sha256};
 
@@ -31,6 +32,10 @@ mod tests {
         assert_eq!(
             package.archive_sha256,
             Sha256::new("5895291c13fa8a3bd82e76d5627f69e0d85ca6a30dcac95c4ea19a5d555879c2")
+        );
+        assert_eq!(
+            package.published,
+            DateTime::parse_from_rfc3339("2023-05-01T17:54:17.086948").unwrap()
         );
     }
 }
