@@ -1,16 +1,22 @@
-use crate::pubspeclock::PackageDescription;
-use std::fs;
+use crate::pubspeclock::{PackageDescription, PackageName, PackageVersion};
+use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
+use std::{fs, io};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum PubCacheError {
-    #[error("Failed to create directory: {0}")]
-    CreateDirError(#[from] std::io::Error),
     #[error("Invalid URL: {0}")]
     UrlParseError(#[from] url::ParseError),
     #[error("Unsupported package source")]
     UnsupportedSource,
+    #[error("IO error: {0}")]
+    IoError(io::Error),
+}
+impl From<io::Error> for PubCacheError {
+    fn from(error: io::Error) -> Self {
+        PubCacheError::IoError(error)
+    }
 }
 
 pub struct PubCache {
@@ -28,8 +34,8 @@ impl PubCache {
     /// Get the path for a hosted package
     pub fn get_package_path(
         &self,
-        name: &str,
-        version: &str,
+        name: PackageName,
+        version: PackageVersion,
         desc: &PackageDescription,
     ) -> Result<PathBuf, PubCacheError> {
         match desc {
@@ -48,13 +54,77 @@ impl PubCache {
 
     pub fn create_package_dir(
         &self,
-        name: &str,
-        version: &str,
+        name: PackageName,
+        version: PackageVersion,
         desc: &PackageDescription,
     ) -> Result<PathBuf, PubCacheError> {
         let path = self.get_package_path(name, version, desc)?;
         fs::create_dir_all(&path)?;
         Ok(path)
+    }
+
+    fn get_hash_file_path(&self, host: &str, package_name: &str, version: &str) -> PathBuf {
+        self.root
+            .join("hosted-hashes")
+            .join(host)
+            .join(format!("{}.{}.sha256", package_name, version))
+    }
+
+    pub fn read_package_hash(
+        &self,
+        host: &str,
+        package_name: &str,
+        version: &str,
+    ) -> Result<Option<String>, PubCacheError> {
+        let hash_path = self.get_hash_file_path(host, package_name, version);
+
+        if !hash_path.exists() {
+            return Ok(None);
+        }
+
+        let mut content = String::new();
+        fs::File::open(&hash_path)
+            .and_then(|mut file| file.read_to_string(&mut content))
+            .map_err(PubCacheError::IoError)?;
+
+        // Remove any whitespace and newlines
+        Ok(Some(content.trim().to_string()))
+    }
+
+    /// Writes the SHA256 hash for a package to the cache
+    pub fn write_package_hash(
+        &self,
+        host: &str,
+        package_name: &str,
+        version: &str,
+        hash: &str,
+    ) -> Result<(), PubCacheError> {
+        let hash_path = self.get_hash_file_path(host, package_name, version);
+
+        // Create parent directories if they don't exist
+        if let Some(parent) = hash_path.parent() {
+            fs::create_dir_all(parent).map_err(PubCacheError::IoError)?;
+        }
+
+        fs::File::create(&hash_path)
+            .and_then(|mut file| file.write_all(hash.as_bytes()))
+            .map_err(PubCacheError::IoError)?;
+
+        Ok(())
+    }
+
+    /// Verifies if a package's hash matches the cached hash
+    pub fn verify_package_hash(
+        &self,
+        host: &str,
+        package_name: &str,
+        version: &str,
+        expected_hash: &str,
+    ) -> Result<bool, PubCacheError> {
+        match self.read_package_hash(host, package_name, version)? {
+            Some(cached_hash) => Ok(cached_hash == expected_hash),
+            None => Ok(false),
+        }
     }
 
     pub fn root_path(&self) -> &Path {
