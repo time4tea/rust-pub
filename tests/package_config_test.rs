@@ -1,4 +1,4 @@
-use flutter_pub::{Package, PackageConfig};
+use flutter_pub::packageconfig::{Package, PackageConfig};
 use std::io::Write;
 use tempfile::NamedTempFile;
 
