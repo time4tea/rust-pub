@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 
 
 pub mod pubspec;
+pub mod downloader;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PackageConfig {

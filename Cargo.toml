@@ -8,3 +8,8 @@ serde = { version = "1.0.219", features = ["derive"] }
 serde_json = "1.0.140"
 serde_yaml = "0.9"
 tempfile = "3.20.0"
+ureq = { version = "2.9", features = ["json"] }
+tar = "0.4"
+flate2 = "1.0"
+thiserror = "1.0"
+threadpool = "1.8"
