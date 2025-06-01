@@ -5,6 +5,7 @@ use std::fs;
 pub mod downloader;
 pub mod pubspec;
 pub mod pubspeclock;
+pub mod scanner;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PackageConfig {

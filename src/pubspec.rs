@@ -105,7 +105,6 @@ pub struct FontFile {
 }
 
 impl Pubspec {
-    /// Load pubspec from a YAML file
     pub fn from_file<P: AsRef<std::path::Path>>(path: P) -> Result<Self, Box<dyn std::error::Error>> {
         let contents = fs::read_to_string(path)?;
         let pubspec = serde_yaml::from_str(&contents)?;

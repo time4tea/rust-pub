@@ -1,18 +1,38 @@
-use flutter_pub::PackageConfig;
+use clap::Parser;
+use flutter_pub::scanner::Scanner;
+use std::path::PathBuf;
+
+#[derive(Parser)]
+#[command(author, version, about, long_about = None)]
+struct Cli {
+    /// Directories to scan for pubspec files
+    #[arg(short, long = "dir", required = true, num_args = 1.., value_name = "DIRECTORY")]
+    dirs: Vec<PathBuf>,
+}
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let config = PackageConfig::from_file("package_config.json")?;
+    let cli = Cli::parse();
 
-    println!("Config version: {}", config.config_version);
-    println!("\nPackages:");
-    for package in config.packages {
-        println!("\nPackage: {}", package.name);
-        if let Some(root_uri) = package.root_uri {
-            println!("Root URI: {}", root_uri);
-        }
-        println!("Package URI: {}", package.package_uri);
-        if let Some(lang_ver) = package.language_version {
-            println!("Language version: {}", lang_ver);
+    let scanner = Scanner::new(cli.dirs);
+    let results = scanner.scan();
+
+    for result in results {
+        match result {
+            Ok(info) => {
+                println!(
+                    "Found project '{}' at {}",
+                    info.pubspec.name,
+                    info.path.display()
+                );
+
+                if let Some(lock) = info.lock_file {
+                    println!("  Dependencies:");
+                    for (name, spec) in lock.packages {
+                        println!("    {} {}", name, spec.version);
+                    }
+                }
+            }
+            Err(e) => eprintln!("Error scanning pubspec: {}", e),
         }
     }
 
