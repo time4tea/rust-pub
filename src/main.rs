@@ -1,7 +1,8 @@
 use clap::Parser;
-use flutter_pub::pubspeclock::PackageDescription;
+use flutter_pub::pubcache::{PubCache, PubCacheError};
 use flutter_pub::scanner::Scanner;
 use std::path::PathBuf;
+use flutter_pub::pubspeclock::PackageDescription;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -17,6 +18,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let scanner = Scanner::new(cli.dirs);
     let results = scanner.scan();
 
+    let cache = PubCache::new(
+        dirs::home_dir()
+            .expect("Could not find home directory")
+            .join(".pub-cache"),
+    )
+    .unwrap();
+
     for result in results {
         match result {
             Ok(info) => {
@@ -26,21 +34,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     info.path.display()
                 );
 
-                if let Some(lock) = info.lock_file {
+                if let Some(lockfile) = info.lock_file {
                     println!("  Dependencies:");
-                    for (name, spec) in lock.packages {
-                        println!(
-                            "    {} {} {}",
-                            name,
-                            match &spec.description {
-                                None => "".to_string(),
-                                Some(PackageDescription::Hosted { name, url, sha256 }) => {
-                                    format!("Name: {}, URL: {}, SHA256: {}", &name, &url, &sha256)
+                    for (name, spec) in lockfile.packages {
+                        match (spec.description) {
+                            Some(desc) => {
+                                let path = cache.get_package_path(name.clone(), spec.version.clone(), &desc);
+                                match (path) {
+                                    Ok(p) => {
+                                        println!("Have {}@{} located at: {} ", name, spec.version, p.display());
+                                    }
+                                    Err(_) => {}
                                 }
-                                Some(_) => "".to_string(),
                             },
-                            spec.version
-                        );
+                            _ => {}
+                        }
                     }
                 }
             }

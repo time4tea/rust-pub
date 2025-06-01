@@ -61,7 +61,7 @@ packages:
         assert!(lock_file.sdks.is_some());
         assert_eq!(lock_file.packages.len(), 4);
 
-        let adaptive_pkg = lock_file.packages.get("adaptive_number").unwrap();
+        let adaptive_pkg = lock_file.packages.get(&PackageName::new("adaptive_number")).unwrap();
         assert_eq!(adaptive_pkg.version, PackageVersion::new("1.0.0"));
         match &adaptive_pkg.description.as_ref().unwrap() {
             PackageDescription::Hosted { name, url, sha256 } => {
@@ -76,13 +76,13 @@ packages:
             _ => panic!("Expected Hosted variant"),
         }
 
-        let path_pkg = lock_file.packages.get("path").unwrap();
+        let path_pkg = lock_file.packages.get(&PackageName::new("path")).unwrap();
         assert_eq!(path_pkg.version, PackageVersion::new("1.8.3"));
 
-        let http_pkg = lock_file.packages.get("http").unwrap();
+        let http_pkg = lock_file.packages.get(&PackageName::new("http")).unwrap();
         assert_eq!(http_pkg.version, PackageVersion::new("0.13.6"));
 
-        let flutter_pkg = lock_file.packages.get("flutter").unwrap();
+        let flutter_pkg = lock_file.packages.get(&PackageName::new("flutter")).unwrap();
         assert_eq!(flutter_pkg.version, PackageVersion::new("0.0.0"));
         assert_eq!(flutter_pkg.source, "sdk");
         assert_eq!(flutter_pkg.dependency, "direct main");

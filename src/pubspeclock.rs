@@ -10,7 +10,7 @@ pub struct PubspecLock {
     #[serde(rename = "sdks")]
     pub sdks: Option<Sdks>,
     /// All packages (direct and transitive dependencies)
-    pub packages: HashMap<String, PackageSpec>,
+    pub packages: HashMap<PackageName, PackageSpec>,
 }
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Sdks {
