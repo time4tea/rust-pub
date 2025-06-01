@@ -2,6 +2,9 @@ use std::collections::HashMap;
 use std::fs;
 use serde::{Deserialize, Serialize};
 
+
+pub mod pubspec;
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PackageConfig {
     /// Config file format version
