@@ -99,7 +99,6 @@ impl PackageConfig {
         }
     }
 
-    /// Add a package to the configuration
     pub fn add_package(&mut self, package: Package) {
         self.packages.push(package);
     }
