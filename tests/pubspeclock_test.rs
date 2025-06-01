@@ -1,9 +1,10 @@
 #[cfg(test)]
 mod tests {
-    use flutter_pub::pubspeclock::{PackageDescription, PubspecLock};
+    use flutter_pub::pubspeclock::{PackageDescription, PackageName, PackageVersion, PubspecLock, Sha256};
     use std::fs::File;
     use std::io::Write;
     use tempfile::TempDir;
+    use url::Url;
 
     #[test]
     fn test_load_pubspec_lock() {
@@ -61,28 +62,28 @@ packages:
         assert_eq!(lock_file.packages.len(), 4);
 
         let adaptive_pkg = lock_file.packages.get("adaptive_number").unwrap();
-        assert_eq!(adaptive_pkg.version, "1.0.0");
+        assert_eq!(adaptive_pkg.version, PackageVersion::new("1.0.0"));
         match &adaptive_pkg.description.as_ref().unwrap() {
-            PackageDescription::Hosted {
-                name,
-                url,
-                sha256,
-            } => {
-                assert_eq!(name, "adaptive_number");
-                assert_eq!(url, "https://pub.dev");
-                assert_eq!(sha256, "3a567544e9b5c9c803006f51140ad544aedc79604fd4f3f2c1380003f97c1d77");
+            PackageDescription::Hosted { name, url, sha256 } => {
+                assert_eq!(name, &PackageName::new("adaptive_number"));
+                let expected_url = Url::parse("https://pub.dev").unwrap();
+                assert!(url.eq(&expected_url));
+                assert_eq!(
+                    sha256,
+                    &Sha256::new("3a567544e9b5c9c803006f51140ad544aedc79604fd4f3f2c1380003f97c1d77")
+                );
             }
             _ => panic!("Expected Hosted variant"),
         }
 
         let path_pkg = lock_file.packages.get("path").unwrap();
-        assert_eq!(path_pkg.version, "1.8.3");
+        assert_eq!(path_pkg.version, PackageVersion::new("1.8.3"));
 
         let http_pkg = lock_file.packages.get("http").unwrap();
-        assert_eq!(http_pkg.version, "0.13.6");
+        assert_eq!(http_pkg.version, PackageVersion::new("0.13.6"));
 
         let flutter_pkg = lock_file.packages.get("flutter").unwrap();
-        assert_eq!(flutter_pkg.version, "0.0.0");
+        assert_eq!(flutter_pkg.version, PackageVersion::new("0.0.0"));
         assert_eq!(flutter_pkg.source, "sdk");
         assert_eq!(flutter_pkg.dependency, "direct main");
         match &flutter_pkg.description.as_ref().unwrap() {
@@ -91,6 +92,5 @@ packages:
             }
             _ => panic!("Expected Sdk variant for Flutter package"),
         }
-
     }
 }

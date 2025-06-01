@@ -15,3 +15,4 @@ thiserror = "1.0"
 threadpool = "1.8"
 walkdir = "2.5.0"
 clap = { version = "4.4", features = ["derive"] }
+url = "2.5.4"
