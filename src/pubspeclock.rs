@@ -43,11 +43,14 @@ pub enum PackageDescription {
         ref_: Option<String>,
         path: Option<String>,
     },
+    Sdk(String),
+
 }
 
 impl PubspecLock {
     /// Load pubspec.lock from a YAML file
     pub fn from_file<P: AsRef<Path>>(path: P) -> Result<Self, Box<dyn std::error::Error>> {
+        println!("Loading pubspec.lock from {}", path.as_ref().display());
         let contents = fs::read_to_string(path)?;
         let lock_file = serde_yaml::from_str(&contents)?;
         Ok(lock_file)

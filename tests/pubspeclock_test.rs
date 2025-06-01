@@ -40,6 +40,12 @@ packages:
       name: "http"
       sha256: "4567"
       url: "https://pub.dev"
+  flutter:
+    dependency: "direct main"
+    description: flutter
+    source: sdk
+    version: "0.0.0"
+
 "#;
 
         File::create(&lock_path)
@@ -52,7 +58,7 @@ packages:
 
         // Verify contents
         assert!(lock_file.sdks.is_some());
-        assert_eq!(lock_file.packages.len(), 3);
+        assert_eq!(lock_file.packages.len(), 4);
 
         let adaptive_pkg = lock_file.packages.get("adaptive_number").unwrap();
         assert_eq!(adaptive_pkg.version, "1.0.0");
@@ -74,5 +80,17 @@ packages:
 
         let http_pkg = lock_file.packages.get("http").unwrap();
         assert_eq!(http_pkg.version, "0.13.6");
+
+        let flutter_pkg = lock_file.packages.get("flutter").unwrap();
+        assert_eq!(flutter_pkg.version, "0.0.0");
+        assert_eq!(flutter_pkg.source, "sdk");
+        assert_eq!(flutter_pkg.dependency, "direct main");
+        match &flutter_pkg.description.as_ref().unwrap() {
+            PackageDescription::Sdk(name) => {
+                assert_eq!(name, "flutter");
+            }
+            _ => panic!("Expected Sdk variant for Flutter package"),
+        }
+
     }
 }
