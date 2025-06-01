@@ -1,4 +1,4 @@
-use flutter_pub::{PackageConfig, Package};
+use flutter_pub::PackageConfig;
 use std::io::Write;
 use tempfile::NamedTempFile;
 
@@ -18,7 +18,9 @@ fn create_test_config_file() -> NamedTempFile {
     }"#;
 
     let mut temp_file = NamedTempFile::new().expect("Failed to create temporary file");
-    temp_file.write_all(json_content.as_bytes()).expect("Failed to write to temporary file");
+    temp_file
+        .write_all(json_content.as_bytes())
+        .expect("Failed to write to temporary file");
     temp_file.flush().expect("Failed to flush temporary file");
     temp_file
 }
@@ -35,7 +37,7 @@ fn test_load_package_config() {
 
     // Test packages array
     assert_eq!(config.packages.len(), 1);
-    
+
     // Test first package
     let package = &config.packages[0];
     assert_eq!(package.name, "package_name");
@@ -48,7 +50,9 @@ fn test_load_package_config() {
 fn test_load_invalid_json() {
     let invalid_json = r#"{ invalid json content }"#;
     let mut temp_file = NamedTempFile::new().expect("Failed to create temporary file");
-    temp_file.write_all(invalid_json.as_bytes()).expect("Failed to write to temporary file");
+    temp_file
+        .write_all(invalid_json.as_bytes())
+        .expect("Failed to write to temporary file");
     temp_file.flush().expect("Failed to flush temporary file");
 
     let result = PackageConfig::from_file(temp_file.path());
