@@ -1,8 +1,8 @@
 use clap::Parser;
-use flutter_pub::pubcache::{PubCache, PubCacheError};
+use flutter_pub::pubcache::PubCache;
+use flutter_pub::pubspeclock::PackageDescription;
 use flutter_pub::scanner::Scanner;
 use std::path::PathBuf;
-use flutter_pub::pubspeclock::PackageDescription;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -35,16 +35,33 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 );
 
                 if let Some(lockfile) = info.lock_file {
-                    println!("  Dependencies:");
                     for (name, spec) in lockfile.packages {
-                        match (spec.description) {
-                            Some(desc) => {
-                                let path = cache.get_package_path(name.clone(), spec.version.clone(), &desc);
-                                match (path) {
-                                    Ok(p) => {
-                                        println!("Have {}@{} located at: {} ", name, spec.version, p.display());
-                                    }
-                                    Err(_) => {}
+                        match spec.description {
+                            Some(desc) => match desc {
+                                PackageDescription::Hosted { .. } => {
+                                    let path = cache.get_package_path(
+                                        name.clone(),
+                                        spec.version.clone(),
+                                        &desc,
+                                    )?;
+                                    println!(
+                                        "  {}:  v{} package located at: {} ",
+                                        name,
+                                        spec.version,
+                                        path.display()
+                                    );
+                                }
+                                PackageDescription::Path { path, relative } => {
+                                    println!(
+                                        "  {}: Local Path: {}, relative {}",
+                                        name, path, relative
+                                    )
+                                }
+                                PackageDescription::Git { .. } => {
+                                    println!("  {}: Git -> Unsupported", name)
+                                }
+                                PackageDescription::Sdk(_) => {
+                                    println!("  {}: SDK ", name)
                                 }
                             },
                             _ => {}

@@ -73,6 +73,7 @@ pub enum PackageDescription {
     },
     Path {
         path: String,
+        relative: bool,
     },
     Git {
         #[serde(with = "url_serde")]

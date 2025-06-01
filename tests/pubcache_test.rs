@@ -78,6 +78,7 @@ mod tests {
 
         let desc = PackageDescription::Path {
             path: "/some/path".to_string(),
+            relative: false,
         };
 
         let result = cache.get_package_path(

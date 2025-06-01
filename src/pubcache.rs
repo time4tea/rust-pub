@@ -39,15 +39,15 @@ impl PubCache {
         desc: &PackageDescription,
     ) -> Result<PathBuf, PubCacheError> {
         match desc {
-            PackageDescription::Hosted { url, .. } => {
-                let host = url.host_str().unwrap_or("pub.dev");
-
-                Ok(self
-                    .root
-                    .join("hosted")
-                    .join(host)
-                    .join(format!("{}-{}", name, version)))
-            }
+            PackageDescription::Hosted { url, .. } => url
+                .host_str()
+                .ok_or(PubCacheError::UnsupportedSource)
+                .map(|host| {
+                    self.root
+                        .join("hosted")
+                        .join(host)
+                        .join(format!("{}-{}", name, version))
+                }),
             _ => Err(PubCacheError::UnsupportedSource),
         }
     }
