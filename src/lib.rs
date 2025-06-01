@@ -1,10 +1,10 @@
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
-use serde::{Deserialize, Serialize};
 
-
-pub mod pubspec;
 pub mod downloader;
+pub mod pubspec;
+pub mod pubspeclock;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PackageConfig {
@@ -43,7 +43,9 @@ pub struct Package {
 
 impl PackageConfig {
     /// Load package configuration from a file
-    pub fn from_file<P: AsRef<std::path::Path>>(path: P) -> Result<Self, Box<dyn std::error::Error>> {
+    pub fn from_file<P: AsRef<std::path::Path>>(
+        path: P,
+    ) -> Result<Self, Box<dyn std::error::Error>> {
         let contents = fs::read_to_string(path)?;
         let config: PackageConfig = serde_json::from_str(&contents)?;
         Ok(config)
