@@ -1,7 +1,7 @@
 use clap::Parser;
+use flutter_pub::pubspeclock::PackageDescription;
 use flutter_pub::scanner::Scanner;
 use std::path::PathBuf;
-use flutter_pub::pubspeclock::PackageDescription;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -29,13 +29,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 if let Some(lock) = info.lock_file {
                     println!("  Dependencies:");
                     for (name, spec) in lock.packages {
-                        println!("    {} {} {}", name, match &spec.description {
-                            None => "".to_string(),
-                            Some(PackageDescription::Hosted{name,url,sha256}) => {
-                                format!("Name: {}, URL: {}, SHA256: {}", &name, &url, &sha256)
+                        println!(
+                            "    {} {} {}",
+                            name,
+                            match &spec.description {
+                                None => "".to_string(),
+                                Some(PackageDescription::Hosted { name, url, sha256 }) => {
+                                    format!("Name: {}, URL: {}, SHA256: {}", &name, &url, &sha256)
+                                }
+                                Some(_) => "".to_string(),
                             },
-                            Some(_) => "".to_string()
-                        }, spec.version);
+                            spec.version
+                        );
                     }
                 }
             }
