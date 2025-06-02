@@ -66,8 +66,8 @@ impl PubCache {
     fn get_hash_file_path(
         &self,
         host: &str,
-        package_name: PackageName,
-        version: PackageVersion,
+        package_name: &PackageName,
+        version: &PackageVersion,
     ) -> PathBuf {
         self.root
             .join("hosted-hashes")
@@ -78,8 +78,8 @@ impl PubCache {
     pub fn read_package_hash(
         &self,
         host: &str,
-        package_name: PackageName,
-        version: PackageVersion,
+        package_name: &PackageName,
+        version: &PackageVersion,
     ) -> Result<Option<Sha256>, PubCacheError> {
         let hash_path = self.get_hash_file_path(host, package_name, version);
 
@@ -100,9 +100,9 @@ impl PubCache {
     pub fn write_package_hash(
         &self,
         host: &str,
-        package_name: PackageName,
-        version: PackageVersion,
-        hash: Sha256,
+        package_name: &PackageName,
+        version: &PackageVersion,
+        hash: &Sha256,
     ) -> Result<(), PubCacheError> {
         let hash_path = self.get_hash_file_path(host, package_name, version);
 
@@ -122,12 +122,12 @@ impl PubCache {
     pub fn verify_package_hash(
         &self,
         host: &str,
-        package_name: PackageName,
-        version: PackageVersion,
-        expected_hash: Sha256,
+        package_name: &PackageName,
+        version: &PackageVersion,
+        expected_hash: &Sha256,
     ) -> Result<bool, PubCacheError> {
         match self.read_package_hash(host, package_name, version)? {
-            Some(cached_hash) => Ok(cached_hash == expected_hash),
+            Some(cached_hash) => Ok(&cached_hash == expected_hash),
             None => Ok(false),
         }
     }

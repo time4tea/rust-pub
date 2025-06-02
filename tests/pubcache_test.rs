@@ -2,6 +2,7 @@
 mod tests {
     use flutter_pub::pubcache::{PubCache, PubCacheError};
     use flutter_pub::pubspeclock::{PackageDescription, PackageName, PackageVersion, Sha256};
+    use flutter_pub::scopeyscope::Let;
     use std::fs;
     use tempfile::TempDir;
     use url::Url;
@@ -95,40 +96,40 @@ mod tests {
         let cache = PubCache::new(temp_dir.path()).unwrap();
 
         let host = "pub.dev";
-        let package_name = "test_package";
-        let version = "1.0.0";
-        let hash = "abcdef1234567890";
+        let package_name = PackageName::new("test_package");
+        let version = PackageVersion::new("1.0.0");
+        let hash = Sha256::new("abcdef1234567890");
 
         // Initially, there should be no hash
         assert_eq!(
             cache
-                .read_package_hash(host, package_name, version)
+                .read_package_hash(host, &package_name, &version)
                 .unwrap(),
             None
         );
 
         // Write the hash
         cache
-            .write_package_hash(host, package_name, version, hash)
+            .write_package_hash(host, &package_name, &version, &hash)
             .unwrap();
 
         // Read it back
         assert_eq!(
             cache
-                .read_package_hash(host, package_name, version)
-                .unwrap(),
-            Some(hash.to_string())
+                .read_package_hash(host, &package_name, &version)
+                .unwrap().as_ref(),
+            Some(&hash)
         );
 
         // Verify the hash
         assert!(
             cache
-                .verify_package_hash(host, package_name, version, hash)
+                .verify_package_hash(host, &package_name, &version, &hash)
                 .unwrap()
         );
         assert!(
             !cache
-                .verify_package_hash(host, package_name, version, "wrong_hash")
+                .verify_package_hash(host, &package_name, &version, &Sha256::new("wrong_hash"))
                 .unwrap()
         );
 
@@ -141,7 +142,9 @@ mod tests {
         assert!(hash_file.exists());
 
         // Verify file content
-        let content = fs::read_to_string(hash_file).unwrap();
+        let content = fs::read_to_string(hash_file)
+            .unwrap()
+            .let_(|it| Sha256::new(it));
         assert_eq!(content, hash);
     }
 }
