@@ -1,4 +1,4 @@
-use crate::pubspeclock::{PackageDescription, PackageName, PackageVersion};
+use crate::pubspeclock::{PackageDescription, PackageName, PackageVersion, Sha256};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::{fs, io};
@@ -63,7 +63,12 @@ impl PubCache {
         Ok(path)
     }
 
-    fn get_hash_file_path(&self, host: &str, package_name: &str, version: &str) -> PathBuf {
+    fn get_hash_file_path(
+        &self,
+        host: &str,
+        package_name: PackageName,
+        version: PackageVersion,
+    ) -> PathBuf {
         self.root
             .join("hosted-hashes")
             .join(host)
@@ -73,9 +78,9 @@ impl PubCache {
     pub fn read_package_hash(
         &self,
         host: &str,
-        package_name: &str,
-        version: &str,
-    ) -> Result<Option<String>, PubCacheError> {
+        package_name: PackageName,
+        version: PackageVersion,
+    ) -> Result<Option<Sha256>, PubCacheError> {
         let hash_path = self.get_hash_file_path(host, package_name, version);
 
         if !hash_path.exists() {
@@ -88,16 +93,16 @@ impl PubCache {
             .map_err(PubCacheError::IoError)?;
 
         // Remove any whitespace and newlines
-        Ok(Some(content.trim().to_string()))
+        Ok(Some(Sha256::new(content.trim().to_string())))
     }
 
     /// Writes the SHA256 hash for a package to the cache
     pub fn write_package_hash(
         &self,
         host: &str,
-        package_name: &str,
-        version: &str,
-        hash: &str,
+        package_name: PackageName,
+        version: PackageVersion,
+        hash: Sha256,
     ) -> Result<(), PubCacheError> {
         let hash_path = self.get_hash_file_path(host, package_name, version);
 
@@ -107,7 +112,7 @@ impl PubCache {
         }
 
         fs::File::create(&hash_path)
-            .and_then(|mut file| file.write_all(hash.as_bytes()))
+            .and_then(|mut file| file.write_all(hash.as_ref().as_bytes()))
             .map_err(PubCacheError::IoError)?;
 
         Ok(())
@@ -117,9 +122,9 @@ impl PubCache {
     pub fn verify_package_hash(
         &self,
         host: &str,
-        package_name: &str,
-        version: &str,
-        expected_hash: &str,
+        package_name: PackageName,
+        version: PackageVersion,
+        expected_hash: Sha256,
     ) -> Result<bool, PubCacheError> {
         match self.read_package_hash(host, package_name, version)? {
             Some(cached_hash) => Ok(cached_hash == expected_hash),
