@@ -35,7 +35,7 @@ mod tests {
         );
         assert_eq!(
             package.published,
-            DateTime::parse_from_rfc3339("2023-05-01T17:54:17.086948").unwrap()
+            DateTime::parse_from_rfc3339("2023-05-01T17:54:17.086948Z").unwrap()
         );
     }
 }
