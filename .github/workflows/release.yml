@@ -28,9 +28,22 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/download-artifact@v4
+      - name: Download binary-x86_64-unknown-linux-musl
+        uses: actions/download-artifact@v4
         with:
-          name: binaries
+          name: binary-x86_64-unknown-linux-musl
+          path: dist
+
+      - name: Download binary-aarch64-unknown-linux-gnu
+        uses: actions/download-artifact@v4
+        with:
+          name: binary-aarch64-unknown-linux-gnu
+          path: dist
+
+      - name: Download binary-aarch64-apple-darwin
+        uses: actions/download-artifact@v4
+        with:
+          name: binary-aarch64-apple-darwin
           path: dist
 
       - name: Create GitHub Release
