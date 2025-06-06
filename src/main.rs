@@ -2,6 +2,7 @@ use clap::Parser;
 use flutter_pub::pubcache::PubCache;
 use flutter_pub::pubspeclock::PackageDescription;
 use flutter_pub::scanner::Scanner;
+use std::collections::HashMap;
 use std::path::PathBuf;
 
 #[derive(Parser)]
@@ -40,29 +41,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         panic!("Problems with pubspecs...");
     }
 
-    let hosted_packages: Vec<_> = results
+    let hosted_packages: HashMap<_, _> = results
         .iter()
-        .filter_map(|r| match r {
-            Ok(info) => info.lock_file.as_ref().map(|lockfile| {
-                lockfile
-                    .packages
-                    .iter()
-                    .filter_map(|(name, spec)| {
-                        if let Some(PackageDescription::Hosted { .. }) = &spec.description {
-                            Some((name.clone(), spec))
-                        } else {
-                            None
-                        }
-                    })
-                    .collect::<Vec<_>>()
-            }),
-            Err(_) => None,
+        .filter_map(|r| r.as_ref().ok())
+        .filter_map(|info| info.lock_file.as_ref())
+        .flat_map(|lockfile| &lockfile.packages)
+        .filter_map(|(name, spec)| {
+            spec.description.as_ref().and_then(|desc| match desc {
+                PackageDescription::Hosted(hosted) => Some((name.clone(), hosted)),
+                _ => None,
+            })
         })
-        .flatten()
         .collect();
 
-    hosted_packages.iter().for_each(|(name, spec)| {
-        println!("{}: {}", name, spec.source);
+    hosted_packages.iter().for_each(|(name, hosted)| {
+        println!("{}: {}  sha:{}", name, hosted.url, hosted.sha256);
     });
 
     Ok(())
