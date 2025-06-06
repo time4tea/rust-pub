@@ -1,4 +1,4 @@
-use crate::pubspeclock::{PackageDescription, PackageName, PackageVersion, Sha256};
+use crate::pubspeclock::{HostedPackage, PackageDescription, PackageName, PackageVersion, Sha256};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::{fs, io};
@@ -39,7 +39,7 @@ impl PubCache {
         desc: &PackageDescription,
     ) -> Result<PathBuf, PubCacheError> {
         match desc {
-            PackageDescription::Hosted { url, .. } => url
+            PackageDescription::Hosted(HostedPackage{ url, .. }) => url
                 .host_str()
                 .ok_or(PubCacheError::UnsupportedSource)
                 .map(|host| {

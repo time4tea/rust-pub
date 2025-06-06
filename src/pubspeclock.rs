@@ -29,7 +29,7 @@ macro_rules! stringy {
                 Self(value.into())
             }
         }
-        
+
         impl From<String> for $name {
             fn from(s: String) -> Self {
                 Self(s)
@@ -54,6 +54,13 @@ stringy!(PackageName);
 stringy!(PackageVersion);
 stringy!(Sha256);
 
+pub struct HostedDependency {
+    pub package: PackageName,
+    pub version: PackageVersion,
+    pub hosted_domain: Url,
+    pub sha256: Sha256,
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PackageSpec {
     pub version: PackageVersion,
@@ -63,25 +70,32 @@ pub struct PackageSpec {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct HostedPackage {
+    pub name: PackageName,
+    #[serde(with = "url_serde")]
+    pub url: Url,
+    pub sha256: Sha256,
+}
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GitPackage {
+    #[serde(with = "url_serde")]
+    pub url: Url,
+    #[serde(rename = "ref")]
+    pub ref_: Option<String>,
+    pub path: Option<String>,
+}
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PathPackage {
+    pub path: String,
+    pub relative: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum PackageDescription {
-    Hosted {
-        name: PackageName,
-        #[serde(with = "url_serde")]
-        url: Url,
-        sha256: Sha256,
-    },
-    Path {
-        path: String,
-        relative: bool,
-    },
-    Git {
-        #[serde(with = "url_serde")]
-        url: Url,
-        #[serde(rename = "ref")]
-        ref_: Option<String>,
-        path: Option<String>,
-    },
+    Hosted(HostedPackage),
+    Path(PathPackage),
+    Git(GitPackage),
     Sdk(String),
 }
 

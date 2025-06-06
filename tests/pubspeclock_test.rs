@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use flutter_pub::pubspeclock::{PackageDescription, PackageName, PackageVersion, PubspecLock, Sha256};
+    use flutter_pub::pubspeclock::{HostedPackage, PackageDescription, PackageName, PackageVersion, PubspecLock, Sha256};
     use std::fs::File;
     use std::io::Write;
     use tempfile::TempDir;
@@ -64,7 +64,7 @@ packages:
         let adaptive_pkg = lock_file.packages.get(&PackageName::new("adaptive_number")).unwrap();
         assert_eq!(adaptive_pkg.version, PackageVersion::new("1.0.0"));
         match &adaptive_pkg.description.as_ref().unwrap() {
-            PackageDescription::Hosted { name, url, sha256 } => {
+            PackageDescription::Hosted(HostedPackage { name, url, sha256 }) => {
                 assert_eq!(name, &PackageName::new("adaptive_number"));
                 let expected_url = Url::parse("https://pub.dev").unwrap();
                 assert!(url.eq(&expected_url));

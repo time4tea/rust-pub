@@ -1,7 +1,9 @@
 #[cfg(test)]
 mod tests {
     use flutter_pub::pubcache::{PubCache, PubCacheError};
-    use flutter_pub::pubspeclock::{PackageDescription, PackageName, PackageVersion, Sha256};
+    use flutter_pub::pubspeclock::{
+        HostedPackage, PackageDescription, PackageName, PackageVersion, PathPackage, Sha256,
+    };
     use flutter_pub::scopeyscope::Let;
     use std::fs;
     use tempfile::TempDir;
@@ -19,11 +21,11 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         let cache = PubCache::new(temp_dir.path()).unwrap();
 
-        let desc = PackageDescription::Hosted {
+        let desc = PackageDescription::Hosted(HostedPackage {
             name: PackageName::new("test_package"),
             url: Url::parse("https://pub.dev").unwrap(),
             sha256: Sha256::new("abc123"),
-        };
+        });
 
         let path = cache
             .get_package_path(
@@ -47,11 +49,11 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         let cache = PubCache::new(temp_dir.path()).unwrap();
 
-        let desc = PackageDescription::Hosted {
+        let desc = PackageDescription::Hosted(HostedPackage {
             name: PackageName::new("test_package"),
             url: Url::parse("https://pub.dev").unwrap(),
             sha256: Sha256::new("abc123"),
-        };
+        });
 
         let path = cache
             .create_package_dir(
@@ -77,10 +79,10 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         let cache = PubCache::new(temp_dir.path()).unwrap();
 
-        let desc = PackageDescription::Path {
+        let desc = PackageDescription::Path(PathPackage {
             path: "/some/path".to_string(),
             relative: false,
-        };
+        });
 
         let result = cache.get_package_path(
             PackageName::new("test_package"),
@@ -117,7 +119,8 @@ mod tests {
         assert_eq!(
             cache
                 .read_package_hash(host, &package_name, &version)
-                .unwrap().as_ref(),
+                .unwrap()
+                .as_ref(),
             Some(&hash)
         );
 

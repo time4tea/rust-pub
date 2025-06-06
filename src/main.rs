@@ -25,53 +25,45 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     )
     .unwrap();
 
-    for result in results {
-        match result {
-            Ok(info) => {
-                println!(
-                    "Found project '{}' at {}",
-                    info.pubspec.name,
-                    info.path.display()
-                );
+    let had_errors = !results
+        .iter()
+        .filter_map(|r| {
+            r.as_ref().err().map(|e| {
+                eprintln!("Error: {}", e);
+                ()
+            })
+        })
+        .collect::<Vec<_>>()
+        .is_empty();
 
-                if let Some(lockfile) = info.lock_file {
-                    for (name, spec) in lockfile.packages {
-                        match spec.description {
-                            Some(desc) => match desc {
-                                PackageDescription::Hosted { .. } => {
-                                    let path = cache.get_package_path(
-                                        name.clone(),
-                                        spec.version.clone(),
-                                        &desc,
-                                    )?;
-                                    println!(
-                                        "  {}:  v{} package located at: {} ",
-                                        name,
-                                        spec.version,
-                                        path.display()
-                                    );
-                                }
-                                PackageDescription::Path { path, relative } => {
-                                    println!(
-                                        "  {}: Local Path: {}, relative {}",
-                                        name, path, relative
-                                    )
-                                }
-                                PackageDescription::Git { .. } => {
-                                    println!("  {}: Git -> Unsupported", name)
-                                }
-                                PackageDescription::Sdk(_) => {
-                                    println!("  {}: SDK ", name)
-                                }
-                            },
-                            _ => {}
-                        }
-                    }
-                }
-            }
-            Err(e) => eprintln!("Error scanning pubspec: {}", e),
-        }
+    if had_errors {
+        panic!("Problems with pubspecs...");
     }
+
+    let hosted_packages: Vec<_> = results
+        .iter()
+        .filter_map(|r| match r {
+            Ok(info) => info.lock_file.as_ref().map(|lockfile| {
+                lockfile
+                    .packages
+                    .iter()
+                    .filter_map(|(name, spec)| {
+                        if let Some(PackageDescription::Hosted { .. }) = &spec.description {
+                            Some((name.clone(), spec))
+                        } else {
+                            None
+                        }
+                    })
+                    .collect::<Vec<_>>()
+            }),
+            Err(_) => None,
+        })
+        .flatten()
+        .collect();
+
+    hosted_packages.iter().for_each(|(name, spec)| {
+        println!("{}: {}", name, spec.source);
+    });
 
     Ok(())
 }
