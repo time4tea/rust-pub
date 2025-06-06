@@ -19,7 +19,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let scanner = Scanner::new(cli.dirs);
     let results = scanner.scan();
 
-    let cache = PubCache::new(
+    let _cache = PubCache::new(
         dirs::home_dir()
             .expect("Could not find home directory")
             .join(".pub-cache"),
@@ -52,6 +52,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         })
         .collect();
 
+    
+    
+    
     hosted_packages.iter().for_each(|(name, hosted)| {
         println!("{}: {}  sha:{}", name, hosted.url, hosted.sha256);
     });

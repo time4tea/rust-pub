@@ -1,8 +1,8 @@
 #[cfg(test)]
 mod tests {
-    use flutter_pub::pubcache::{PubCache, PubCacheError};
+    use flutter_pub::pubcache::PubCache;
     use flutter_pub::pubspeclock::{
-        HostedPackage, PackageDescription, PackageName, PackageVersion, PathPackage, Sha256,
+        HostedPackage, PackageName, PackageVersion, Sha256,
     };
     use flutter_pub::scopeyscope::Let;
     use std::fs;
@@ -21,11 +21,11 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         let cache = PubCache::new(temp_dir.path()).unwrap();
 
-        let desc = PackageDescription::Hosted(HostedPackage {
+        let desc = HostedPackage {
             name: PackageName::new("test_package"),
             url: Url::parse("https://pub.dev").unwrap(),
             sha256: Sha256::new("abc123"),
-        });
+        };
 
         let path = cache
             .get_package_path(
@@ -49,11 +49,11 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         let cache = PubCache::new(temp_dir.path()).unwrap();
 
-        let desc = PackageDescription::Hosted(HostedPackage {
+        let desc = HostedPackage {
             name: PackageName::new("test_package"),
             url: Url::parse("https://pub.dev").unwrap(),
             sha256: Sha256::new("abc123"),
-        });
+        };
 
         let path = cache
             .create_package_dir(
@@ -72,24 +72,6 @@ mod tests {
                 .join("pub.dev")
                 .join("test_package-1.0.0")
         );
-    }
-
-    #[test]
-    fn test_unsupported_package_source() {
-        let temp_dir = TempDir::new().unwrap();
-        let cache = PubCache::new(temp_dir.path()).unwrap();
-
-        let desc = PackageDescription::Path(PathPackage {
-            path: "/some/path".to_string(),
-            relative: false,
-        });
-
-        let result = cache.get_package_path(
-            PackageName::new("test_package"),
-            PackageVersion::new("1.0.0"),
-            &desc,
-        );
-        assert!(matches!(result, Err(PubCacheError::UnsupportedSource)));
     }
 
     #[test]

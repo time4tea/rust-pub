@@ -1,4 +1,4 @@
-use crate::pubspeclock::{HostedPackage, PackageDescription, PackageName, PackageVersion, Sha256};
+use crate::pubspeclock::{HostedPackage, PackageName, PackageVersion, Sha256};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::{fs, io};
@@ -36,27 +36,24 @@ impl PubCache {
         &self,
         name: PackageName,
         version: PackageVersion,
-        desc: &PackageDescription,
+        desc: &HostedPackage,
     ) -> Result<PathBuf, PubCacheError> {
-        match desc {
-            PackageDescription::Hosted(HostedPackage{ url, .. }) => url
-                .host_str()
-                .ok_or(PubCacheError::UnsupportedSource)
-                .map(|host| {
-                    self.root
-                        .join("hosted")
-                        .join(host)
-                        .join(format!("{}-{}", name, version))
-                }),
-            _ => Err(PubCacheError::UnsupportedSource),
-        }
+        desc.url
+            .host_str()
+            .ok_or(PubCacheError::UnsupportedSource)
+            .map(|host| {
+                self.root
+                    .join("hosted")
+                    .join(host)
+                    .join(format!("{}-{}", name, version))
+            })
     }
 
     pub fn create_package_dir(
         &self,
         name: PackageName,
         version: PackageVersion,
-        desc: &PackageDescription,
+        desc: &HostedPackage,
     ) -> Result<PathBuf, PubCacheError> {
         let path = self.get_package_path(name, version, desc)?;
         fs::create_dir_all(&path)?;
