@@ -26,16 +26,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     )
     .unwrap();
 
-    let had_errors = !results
+    let had_errors = results
         .iter()
-        .filter_map(|r| {
-            r.as_ref().err().map(|e| {
-                eprintln!("Error: {}", e);
-                ()
-            })
+        .filter_map(|r| r.as_ref().err())
+        .inspect(|e| {
+            eprintln!("Error: {}", e);
         })
-        .collect::<Vec<_>>()
-        .is_empty();
+        .next()
+        .is_some();
 
     if had_errors {
         panic!("Problems with pubspecs...");
