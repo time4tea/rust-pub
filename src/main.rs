@@ -47,7 +47,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     let hosted_packages = hosted_packages_from(results);
-
     let missing_packages = packages_missing_in_cache(&cache, &hosted_packages);
 
     if missing_packages.is_empty() {

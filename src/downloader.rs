@@ -1,10 +1,9 @@
-
 use std::fs::{self, File};
 use std::io::{self, Read, Write};
 use std::path::{Path, PathBuf};
-use std::thread;
 use thiserror::Error;
 
+use crate::pubspeclock::{PackageName, PackageVersion};
 use std::sync::mpsc;
 use threadpool::ThreadPool;
 
@@ -31,12 +30,11 @@ impl PackageDownloader {
         Ok(Self { cache_dir })
     }
 
-
     /// Downloads a package and returns the path to the downloaded archive
     pub fn download_package(
         &self,
-        name: &str,
-        version: &str,
+        name: &PackageName,
+        version: &PackageVersion,
     ) -> Result<PathBuf, DownloadError> {
         let archive_path = self.cache_dir.join(format!("{}-{}.tar.gz", name, version));
 
@@ -52,14 +50,12 @@ impl PackageDownloader {
         );
 
         // Start a thread for the download
-        let download_result = thread::spawn(move || -> Result<Vec<u8>, ureq::Error> {
+        let download_result = {
             let response = ureq::get(&url).call()?;
             let mut bytes = Vec::new();
             response.into_reader().read_to_end(&mut bytes)?;
-            Ok(bytes)
-        })
-            .join()
-            .map_err(|_| DownloadError::InvalidArchive)??;
+            bytes
+        };
 
         // Write the downloaded content to a temporary file first
         let temp_path = archive_path.with_extension("tmp");
@@ -78,16 +74,16 @@ impl PackageDownloader {
 
     pub fn download_packages_with_pool(
         &self,
-        packages: &[(&str, &str)],
-        pool: ThreadPool,
+        packages: &[(PackageName, PackageVersion)],
+        pool: &ThreadPool,
     ) -> Vec<Result<PathBuf, DownloadError>> {
         let (tx, rx) = mpsc::channel();
         let total_packages = packages.len();
 
-        for &(name, version) in packages {
+        for (name, version) in packages {
             let tx = tx.clone();
-            let name = name.to_string();
-            let version = version.to_string();
+            let name = name.clone();
+            let version = version.clone();
             let cache_dir = self.cache_dir.clone();
 
             pool.execute(move || {
@@ -109,34 +105,6 @@ impl PackageDownloader {
 
         // Collect results in the order they complete
         rx.iter().take(total_packages).collect()
-    }
-
-    /// Downloads multiple packages concurrently
-    pub fn download_packages(
-        &self,
-        packages: &[(&str, &str)],
-    ) -> Vec<Result<PathBuf, DownloadError>> {
-        let cache_dir = self.cache_dir.clone();
-
-        let handles: Vec<_> = packages
-            .iter()
-            .map(|&(name, version)| {
-                let name = name.to_string();
-                let version = version.to_string();
-                let cache_dir = cache_dir.clone();
-
-                thread::spawn(move || {
-                    let downloader = PackageDownloader::new(cache_dir)
-                        .map_err(DownloadError::IoError)?;
-                    downloader.download_package(&name, &version)
-                })
-            })
-            .collect();
-
-        handles
-            .into_iter()
-            .map(|handle| handle.join().unwrap_or(Err(DownloadError::InvalidArchive)))
-            .collect()
     }
 
     /// Verifies that the downloaded file is a valid tar.gz archive
