@@ -5,6 +5,8 @@ use thiserror::Error;
 
 use crate::pubspeclock::{PackageName, PackageVersion};
 use std::sync::mpsc;
+use std::sync::mpsc::Sender;
+
 use threadpool::ThreadPool;
 
 #[derive(Error, Debug)]
@@ -19,6 +21,26 @@ pub enum DownloadError {
     InvalidArchive,
 }
 
+#[derive(Debug)]
+pub enum DownloadEvent {
+    Started {
+        package: String,
+    },
+    Progress {
+        package: String,
+        total_size: u64,
+        bytes: u64,
+    },
+    Completed {
+        package: String,
+    },
+    Failed {
+        package: String,
+        error: String,
+    },
+    AllCompleted,
+}
+
 pub struct PackageDownloader {
     cache_dir: PathBuf,
 }
@@ -30,45 +52,80 @@ impl PackageDownloader {
         Ok(Self { cache_dir })
     }
 
-    /// Downloads a package and returns the path to the downloaded archive
     pub fn download_package(
         &self,
         name: &PackageName,
         version: &PackageVersion,
+        progress_tx: &Sender<DownloadEvent>,
     ) -> Result<PathBuf, DownloadError> {
         let archive_path = self.cache_dir.join(format!("{}-{}.tar.gz", name, version));
-
-        // Check if we already have this package cached
         if archive_path.exists() {
             return Ok(archive_path);
         }
 
-        // Construct the download URL
+        let package_name = format!("{}-{}", name, version);
+
+        progress_tx
+            .send(DownloadEvent::Started {
+                package: package_name.clone(),
+            })
+            .unwrap();
+
         let url = format!(
             "https://pub.dev/packages/{}/versions/{}.tar.gz",
             name, version
         );
 
-        // Start a thread for the download
-        let download_result = {
-            let response = ureq::get(&url).call()?;
-            let mut bytes = Vec::new();
-            response.into_reader().read_to_end(&mut bytes)?;
-            bytes
-        };
+        let response = ureq::get(&url).call().inspect_err(|e| {
+            progress_tx
+                .send(DownloadEvent::Failed {
+                    package: package_name.clone(),
+                    error: e.to_string(),
+                })
+                .unwrap()
+        })?;
+        let total_size = response
+            .header("Content-Length")
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(0);
 
-        // Write the downloaded content to a temporary file first
+        let mut reader = response.into_reader();
+        let mut bytes = Vec::new();
+        let mut buffer = [0; 16384];
+        let mut downloaded = 0;
+
+        loop {
+            match reader.read(&mut buffer) {
+                Ok(0) => break,
+                Ok(n) => {
+                    bytes.extend_from_slice(&buffer[..n]);
+                    downloaded += n as u64;
+                    progress_tx
+                        .send(DownloadEvent::Progress {
+                            package: package_name.clone(),
+                            total_size,
+                            bytes: downloaded,
+                        })
+                        .unwrap();
+                }
+                Err(e) => return Err(DownloadError::IoError(e)),
+            }
+        }
+
+        // Rest of the download_package implementation...
         let temp_path = archive_path.with_extension("tmp");
         let mut temp_file = File::create(&temp_path)?;
-        temp_file.write_all(&download_result)?;
+        temp_file.write_all(&bytes)?;
         temp_file.flush()?;
 
-        // Verify the archive is valid
         self.verify_archive(&temp_path)?;
-
-        // Move the temporary file to the final location
         fs::rename(temp_path, &archive_path)?;
 
+        progress_tx
+            .send(DownloadEvent::Completed {
+                package: package_name.clone(),
+            })
+            .unwrap();
         Ok(archive_path)
     }
 
@@ -76,6 +133,7 @@ impl PackageDownloader {
         &self,
         packages: &[(PackageName, PackageVersion)],
         pool: &ThreadPool,
+        progress_tx: &Sender<DownloadEvent>,
     ) -> Vec<Result<PathBuf, DownloadError>> {
         let (tx, rx) = mpsc::channel();
         let total_packages = packages.len();
@@ -85,26 +143,33 @@ impl PackageDownloader {
             let name = name.clone();
             let version = version.clone();
             let cache_dir = self.cache_dir.clone();
+            let progress_tx = progress_tx.clone();
 
             pool.execute(move || {
                 let downloader = match PackageDownloader::new(cache_dir) {
                     Ok(d) => d,
                     Err(e) => {
-                        tx.send(Err(DownloadError::IoError(e))).unwrap();
+                        let error = DownloadError::IoError(e);
+                        progress_tx
+                            .send(DownloadEvent::Failed {
+                                package: name.to_string(),
+                                error: error.to_string(),
+                            })
+                            .unwrap();
+                        tx.send(Err(error)).unwrap();
                         return;
                     }
                 };
 
-                let result = downloader.download_package(&name, &version);
+                let result = downloader.download_package(&name, &version, &progress_tx);
                 tx.send(result).unwrap();
             });
         }
 
-        // Drop the original sender so rx.iter() will stop after all jobs complete
         drop(tx);
-
-        // Collect results in the order they complete
-        rx.iter().take(total_packages).collect()
+        let v = rx.iter().take(total_packages).collect::<Vec<_>>();
+        progress_tx.send(DownloadEvent::AllCompleted).unwrap();
+        v
     }
 
     /// Verifies that the downloaded file is a valid tar.gz archive

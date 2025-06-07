@@ -31,7 +31,14 @@ impl PubCache {
         Ok(PubCache { root })
     }
 
-    /// Get the path for a hosted package
+    pub fn download_path(&self) -> impl AsRef<Path> {
+        self.root.join("hosted").join("downloads")
+    }
+
+    fn hosted_path(&self, host: &str) -> PathBuf {
+        self.root.join("hosted").join(host)
+    }
+
     pub fn get_package_path(
         &self,
         name: &PackageName,
@@ -41,12 +48,7 @@ impl PubCache {
         desc.url
             .host_str()
             .ok_or(PubCacheError::UnsupportedSource)
-            .map(|host| {
-                self.root
-                    .join("hosted")
-                    .join(host)
-                    .join(format!("{}-{}", name, version))
-            })
+            .map(|host| self.hosted_path(host).join(format!("{}-{}", name, version)))
     }
 
     pub fn create_package_dir(
