@@ -2,8 +2,9 @@ use clap::Parser;
 use flutter_pub::extensions::FilterNotIterator;
 use flutter_pub::pubcache::PubCache;
 use flutter_pub::pubspeclock::{HostedPackage, PackageDescription, PackageName, PackageVersion};
-use flutter_pub::scanner::Scanner;
+use flutter_pub::scanner::{PubspecInfo, Scanner};
 use std::collections::BTreeMap;
+use std::error::Error;
 use std::path::PathBuf;
 
 #[derive(Parser)]
@@ -45,6 +46,24 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         panic!("Problems with pubspecs...");
     }
 
+    let hosted_packages = hosted_packages_from(results);
+
+    let missing_packages = packages_missing_in_cache(&cache, &hosted_packages);
+
+    if missing_packages.is_empty() {
+        println!("All packages are cached");
+    } else {
+        missing_packages.iter().for_each(|p| {
+            println!("{}: {}  sha:{}", p.name, p.version, p.hosted);
+        });
+    }
+
+    Ok(())
+}
+
+fn hosted_packages_from(
+    results: Vec<Result<PubspecInfo, Box<dyn Error>>>,
+) -> Vec<HostedDependency> {
     let hosted_packages: Vec<HostedDependency> = results
         .iter()
         .filter_map(|r| r.as_ref().ok())
@@ -61,7 +80,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             })
         })
         .collect();
+    hosted_packages
+}
 
+fn packages_missing_in_cache<'a>(
+    cache: &PubCache,
+    hosted_packages: &'a Vec<HostedDependency>,
+) -> Vec<&'a HostedDependency> {
     let missing_packages: Vec<_> = hosted_packages
         .iter()
         .filter_not(|d| {
@@ -76,14 +101,5 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         })
         .into_values()
         .collect();
-
-    if missing_packages.is_empty() {
-        println!("All packages are cached");
-    } else {
-        missing_packages.iter().for_each(|p| {
-            println!("{}: {}  sha:{}", p.name, p.version, p.hosted);
-        });
-    }
-
-    Ok(())
+    missing_packages
 }
