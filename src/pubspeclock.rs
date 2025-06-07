@@ -1,3 +1,4 @@
+use derive_more::Display;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
@@ -54,13 +55,6 @@ stringy!(PackageName);
 stringy!(PackageVersion);
 stringy!(Sha256);
 
-pub struct HostedDependency {
-    pub package: PackageName,
-    pub version: PackageVersion,
-    pub hosted_domain: Url,
-    pub sha256: Sha256,
-}
-
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PackageSpec {
     pub version: PackageVersion,
@@ -69,13 +63,15 @@ pub struct PackageSpec {
     pub description: Option<PackageDescription>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Display, Clone, Serialize, Deserialize)]
+#[display("{} {} {}", name, url, sha256)]
 pub struct HostedPackage {
     pub name: PackageName,
     #[serde(with = "url_serde")]
     pub url: Url,
     pub sha256: Sha256,
 }
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GitPackage {
     #[serde(with = "url_serde")]
@@ -84,6 +80,7 @@ pub struct GitPackage {
     pub ref_: Option<String>,
     pub path: Option<String>,
 }
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PathPackage {
     pub path: String,

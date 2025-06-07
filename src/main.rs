@@ -1,8 +1,7 @@
 use clap::Parser;
 use flutter_pub::pubcache::PubCache;
-use flutter_pub::pubspeclock::PackageDescription;
+use flutter_pub::pubspeclock::{HostedPackage, PackageDescription, PackageName, PackageVersion};
 use flutter_pub::scanner::Scanner;
-use std::collections::HashMap;
 use std::path::PathBuf;
 
 #[derive(Parser)]
@@ -11,6 +10,12 @@ struct Cli {
     /// Directories to scan for pubspec files
     #[arg(short, long = "dir", required = true, num_args = 1.., value_name = "DIRECTORY")]
     dirs: Vec<PathBuf>,
+}
+
+struct HostedDependency {
+    name: PackageName,
+    version: PackageVersion,
+    hosted: HostedPackage,
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -39,25 +44,41 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         panic!("Problems with pubspecs...");
     }
 
-    let hosted_packages: HashMap<_, _> = results
+    let hosted_packages: Vec<HostedDependency> = results
         .iter()
         .filter_map(|r| r.as_ref().ok())
         .filter_map(|info| info.lock_file.as_ref())
         .flat_map(|lockfile| &lockfile.packages)
         .filter_map(|(name, spec)| {
             spec.description.as_ref().and_then(|desc| match desc {
-                PackageDescription::Hosted(hosted) => Some((name.clone(), hosted)),
+                PackageDescription::Hosted(hosted) => Some(HostedDependency {
+                    name: name.clone(),
+                    version: spec.version.clone(),
+                    hosted: hosted.clone(),
+                }),
                 _ => None,
             })
         })
         .collect();
 
-    
-    
-    
-    hosted_packages.iter().for_each(|(name, hosted)| {
-        println!("{}: {}  sha:{}", name, hosted.url, hosted.sha256);
-    });
+    let missing_packages: Vec<_> = hosted_packages
+        .iter()
+        .filter(|d| {
+            let exists = _cache
+                .get_package_path(&d.name, &d.version, &d.hosted)
+                .map(|path| path.exists())
+                .unwrap_or(false);
+            !exists
+        })
+        .collect();
+
+    if missing_packages.is_empty() {
+        println!("All packages are cached");
+    } else {
+        missing_packages.iter().for_each(|p| {
+            println!("{}: {}  sha:{}", p.name, p.version, p.hosted);
+        });
+    }
 
     Ok(())
 }

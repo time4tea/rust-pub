@@ -29,8 +29,8 @@ mod tests {
 
         let path = cache
             .get_package_path(
-                PackageName::new("test_package"),
-                PackageVersion::new("1.0.0"),
+                &PackageName::new("test_package"),
+                &PackageVersion::new("1.0.0"),
                 &desc,
             )
             .unwrap();
@@ -57,8 +57,8 @@ mod tests {
 
         let path = cache
             .create_package_dir(
-                PackageName::new("test_package"),
-                PackageVersion::new("1.0.0"),
+                &PackageName::new("test_package"),
+                &PackageVersion::new("1.0.0"),
                 &desc,
             )
             .unwrap();

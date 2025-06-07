@@ -34,8 +34,8 @@ impl PubCache {
     /// Get the path for a hosted package
     pub fn get_package_path(
         &self,
-        name: PackageName,
-        version: PackageVersion,
+        name: &PackageName,
+        version: &PackageVersion,
         desc: &HostedPackage,
     ) -> Result<PathBuf, PubCacheError> {
         desc.url
@@ -51,8 +51,8 @@ impl PubCache {
 
     pub fn create_package_dir(
         &self,
-        name: PackageName,
-        version: PackageVersion,
+        name: &PackageName,
+        version: &PackageVersion,
         desc: &HostedPackage,
     ) -> Result<PathBuf, PubCacheError> {
         let path = self.get_package_path(name, version, desc)?;
