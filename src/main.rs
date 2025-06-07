@@ -9,7 +9,6 @@ use std::path::PathBuf;
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
 struct Cli {
-    /// Directories to scan for pubspec files
     #[arg(short, long = "dir", required = true, num_args = 1.., value_name = "DIRECTORY")]
     dirs: Vec<PathBuf>,
 }
