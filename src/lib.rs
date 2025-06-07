@@ -1,4 +1,5 @@
 pub mod downloader;
+pub mod extensions;
 pub mod packageconfig;
 pub mod pubcache;
 pub mod pubpackage;
