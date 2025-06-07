@@ -6,3 +6,4 @@ pub mod pubspec;
 pub mod pubspeclock;
 pub mod scanner;
 pub mod scopeyscope;
+pub mod types;
