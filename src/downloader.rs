@@ -77,13 +77,12 @@ impl PackageDownloader {
         );
 
         let response = ureq::get(&url).call().inspect_err(|e| {
-            progress_tx
-                .send(DownloadEvent::Failed {
-                    package: package_name.clone(),
-                    error: e.to_string(),
-                })
-                .unwrap()
+            let _ = progress_tx.send(DownloadEvent::Failed {
+                package: package_name.clone(),
+                error: e.to_string(),
+            });
         })?;
+
         let total_size = response
             .header("Content-Length")
             .and_then(|s| s.parse().ok())
@@ -100,13 +99,11 @@ impl PackageDownloader {
                 Ok(n) => {
                     bytes.extend_from_slice(&buffer[..n]);
                     downloaded += n as u64;
-                    progress_tx
-                        .send(DownloadEvent::Progress {
-                            package: package_name.clone(),
-                            total_size,
-                            bytes: downloaded,
-                        })
-                        .unwrap();
+                    let _ = progress_tx.send(DownloadEvent::Progress {
+                        package: package_name.clone(),
+                        total_size,
+                        bytes: downloaded,
+                    });
                 }
                 Err(e) => return Err(DownloadError::IoError(e)),
             }
@@ -121,11 +118,10 @@ impl PackageDownloader {
         self.verify_archive(&temp_path)?;
         fs::rename(temp_path, &archive_path)?;
 
-        progress_tx
-            .send(DownloadEvent::Completed {
-                package: package_name.clone(),
-            })
-            .unwrap();
+        let _ = progress_tx.send(DownloadEvent::Completed {
+            package: package_name.clone(),
+        });
+
         Ok(archive_path)
     }
 
@@ -150,12 +146,10 @@ impl PackageDownloader {
                     Ok(d) => d,
                     Err(e) => {
                         let error = DownloadError::IoError(e);
-                        progress_tx
-                            .send(DownloadEvent::Failed {
-                                package: name.to_string(),
-                                error: error.to_string(),
-                            })
-                            .unwrap();
+                        let _ = progress_tx.send(DownloadEvent::Failed {
+                            package: name.to_string(),
+                            error: error.to_string(),
+                        });
                         tx.send(Err(error)).unwrap();
                         return;
                     }
@@ -168,7 +162,7 @@ impl PackageDownloader {
 
         drop(tx);
         let v = rx.iter().take(total_packages).collect::<Vec<_>>();
-        progress_tx.send(DownloadEvent::AllCompleted).unwrap();
+        let _ = progress_tx.send(DownloadEvent::AllCompleted);
         v
     }
 
