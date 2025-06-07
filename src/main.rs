@@ -2,6 +2,8 @@ use clap::Parser;
 use flutter_pub::pubcache::PubCache;
 use flutter_pub::pubspeclock::{HostedPackage, PackageDescription, PackageName, PackageVersion};
 use flutter_pub::scanner::Scanner;
+use itertools::Itertools;
+use std::collections::BTreeMap;
 use std::path::PathBuf;
 
 #[derive(Parser)]
@@ -27,7 +29,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let _cache = PubCache::new(
         dirs::home_dir()
             .expect("Could not find home directory")
-            .join(".pub-cache"),
+            .join(".pub-cache-2"),
     )
     .unwrap();
 
@@ -70,6 +72,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .unwrap_or(false);
             !exists
         })
+        .fold(BTreeMap::new(), |mut map, package| {
+            map.entry(&package.name).or_insert(package);
+            map
+        })
+        .into_values()
         .collect();
 
     if missing_packages.is_empty() {

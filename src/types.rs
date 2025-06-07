@@ -2,7 +2,7 @@
 #[macro_export]
 macro_rules! stringy {
     ($name:ident) => {
-        #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+        #[derive(Debug, Clone, PartialEq, Eq, Hash, Ord, PartialOrd, Serialize, Deserialize)]
         #[serde(transparent)]
         pub struct $name(pub String);
 
