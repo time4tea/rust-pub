@@ -2,7 +2,6 @@ use clap::Parser;
 use flutter_pub::pubcache::PubCache;
 use flutter_pub::pubspeclock::{HostedPackage, PackageDescription, PackageName, PackageVersion};
 use flutter_pub::scanner::Scanner;
-use itertools::Itertools;
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 
