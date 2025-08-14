@@ -108,7 +108,6 @@ fn packages_missing_in_cache<'a>(
         .filter_not(|d| {
             cache
                 .get_package_path(&d.name, &d.version, &d.hosted)
-                .inspect(|p| println!("{}", p.display()))
                 .map(|path| path.exists())
                 .unwrap_or(false)
         })

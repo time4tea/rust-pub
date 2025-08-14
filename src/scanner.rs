@@ -1,8 +1,8 @@
 use crate::pubspec::{Pubspec, PubspecError};
 use crate::pubspeclock::{PubspecLock, PubspecLockError};
 use std::path::{Path, PathBuf};
-use walkdir::{DirEntry, WalkDir};
 use thiserror::Error;
+use walkdir::{DirEntry, WalkDir};
 
 #[derive(Debug)]
 pub struct PubspecInfo {
@@ -18,7 +18,7 @@ pub struct Scanner {
 #[derive(Error, Debug)]
 pub enum ScannerError {
     #[error(transparent)]
-    PubspecError(#[from] PubspecError),  // Assuming Pubspec has a similar error type
+    PubspecError(#[from] PubspecError), // Assuming Pubspec has a similar error type
     #[error(transparent)]
     PubspecLockError(#[from] PubspecLockError),
 }
@@ -35,8 +35,6 @@ impl Scanner {
             .map(|s| s == "pubspec.yaml")
             .unwrap_or(false)
     }
-
-
 
     fn load_pubspec_files(pubspec_path: &Path) -> Result<PubspecInfo, ScannerError> {
         let pubspec = Pubspec::from_file(pubspec_path)?;
@@ -56,12 +54,19 @@ impl Scanner {
         })
     }
 
-
     pub fn scan(&self) -> Vec<Result<PubspecInfo, ScannerError>> {
         let mut results = Vec::new();
 
         for root_dir in &self.root_dirs {
-            let mut walker = WalkDir::new(root_dir).follow_links(true).into_iter();
+            let mut walker = WalkDir::new(root_dir)
+                .follow_links(true)
+                .into_iter()
+                .filter_entry(|e| {
+                    !e.file_name()
+                        .to_str()
+                        .map(|s| s.starts_with(".`"))
+                        .unwrap_or(false)
+                });
 
             loop {
                 match walker.next() {
@@ -82,5 +87,4 @@ impl Scanner {
 
         results
     }
-
 }
