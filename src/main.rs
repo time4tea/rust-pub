@@ -3,10 +3,9 @@ use flutter_pub::downloader::{DownloadEvent, PackageDownloader};
 use flutter_pub::extensions::FilterNotIterator;
 use flutter_pub::pubcache::PubCache;
 use flutter_pub::pubspeclock::{HostedPackage, PackageDescription, PackageName, PackageVersion};
-use flutter_pub::scanner::{PubspecInfo, Scanner};
+use flutter_pub::scanner::{PubspecInfo, Scanner, ScannerError};
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use std::collections::{BTreeMap, HashMap};
-use std::error::Error;
 use std::path::PathBuf;
 use std::sync::mpsc;
 use std::sync::mpsc::Receiver;
@@ -79,7 +78,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 fn hosted_packages_from(
-    results: Vec<Result<PubspecInfo, Box<dyn Error>>>,
+    results: Vec<Result<PubspecInfo, ScannerError>>,
 ) -> Vec<HostedDependency> {
     let hosted_packages: Vec<HostedDependency> = results
         .iter()

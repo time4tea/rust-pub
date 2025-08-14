@@ -1,8 +1,8 @@
-use crate::pubspec::Pubspec;
-use crate::pubspeclock::PubspecLock;
-use std::error::Error;
+use crate::pubspec::{Pubspec, PubspecError};
+use crate::pubspeclock::{PubspecLock, PubspecLockError};
 use std::path::{Path, PathBuf};
 use walkdir::{DirEntry, WalkDir};
+use thiserror::Error;
 
 #[derive(Debug)]
 pub struct PubspecInfo {
@@ -13,6 +13,14 @@ pub struct PubspecInfo {
 
 pub struct Scanner {
     root_dirs: Vec<PathBuf>,
+}
+
+#[derive(Error, Debug)]
+pub enum ScannerError {
+    #[error(transparent)]
+    PubspecError(#[from] PubspecError),  // Assuming Pubspec has a similar error type
+    #[error(transparent)]
+    PubspecLockError(#[from] PubspecLockError),
 }
 
 impl Scanner {
@@ -28,8 +36,9 @@ impl Scanner {
             .unwrap_or(false)
     }
 
-    fn load_pubspec_files(pubspec_path: &Path) -> Result<PubspecInfo, Box<dyn Error>> {
-        println!("Loading pubspec file: {}", pubspec_path.display());
+
+
+    fn load_pubspec_files(pubspec_path: &Path) -> Result<PubspecInfo, ScannerError> {
         let pubspec = Pubspec::from_file(pubspec_path)?;
 
         // Try to load the lock file if it exists
@@ -47,7 +56,8 @@ impl Scanner {
         })
     }
 
-    pub fn scan(&self) -> Vec<Result<PubspecInfo, Box<dyn Error>>> {
+
+    pub fn scan(&self) -> Vec<Result<PubspecInfo, ScannerError>> {
         let mut results = Vec::new();
 
         for root_dir in &self.root_dirs {
@@ -55,12 +65,9 @@ impl Scanner {
 
             loop {
                 match walker.next() {
-                    None => {
-                        break;
-                    }
+                    None => break,
                     Some(Ok(entry)) => {
                         if Self::is_pubspec_yaml(&entry) {
-                            // Found a pubspec.yaml file
                             let result = Self::load_pubspec_files(entry.path());
                             results.push(result);
                             walker.skip_current_dir();
@@ -75,4 +82,5 @@ impl Scanner {
 
         results
     }
+
 }

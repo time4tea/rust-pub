@@ -1,7 +1,9 @@
 
 use std::collections::HashMap;
-use std::fs;
+use std::{fs, io};
+use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
+use thiserror::Error;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -105,9 +107,32 @@ pub struct FontFile {
 }
 
 impl Pubspec {
-    pub fn from_file<P: AsRef<std::path::Path>>(path: P) -> Result<Self, Box<dyn std::error::Error>> {
-        let contents = fs::read_to_string(path)?;
-        let pubspec = serde_yaml::from_str(&contents)?;
-        Ok(pubspec)
+    pub fn from_file<P: AsRef<std::path::Path>>(path: P) -> Result<Self, PubspecError> {
+        let path = path.as_ref().to_owned();
+        let contents = fs::read_to_string(&path).map_err(|e| PubspecError::IoError {
+            path: path.clone(),
+            source: e,
+        })?;
+
+        serde_yaml::from_str(&contents).map_err(|e| PubspecError::YamlError {
+            path,
+            source: e,
+        })
     }
+}
+
+#[derive(Error, Debug)]
+pub enum PubspecError {
+    #[error("Failed to read file at {path}: {source}")]
+    IoError {
+        path: PathBuf,
+        #[source]
+        source: io::Error,
+    },
+    #[error("Failed to parse YAML from {path}: {source}")]
+    YamlError {
+        path: PathBuf,
+        #[source]
+        source: serde_yaml::Error,
+    },
 }

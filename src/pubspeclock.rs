@@ -5,6 +5,11 @@ use std::fs;
 use std::path::Path;
 use url::Url;
 
+use std::path::PathBuf;
+use thiserror::Error;
+use std::io;
+
+
 use crate::stringy;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -86,10 +91,33 @@ mod url_serde {
 }
 
 impl PubspecLock {
-    pub fn from_file<P: AsRef<Path>>(path: P) -> Result<Self, Box<dyn std::error::Error>> {
-        println!("Loading pubspec.lock from {}", path.as_ref().display());
-        let contents = fs::read_to_string(path)?;
-        let lock_file = serde_yaml::from_str(&contents)?;
-        Ok(lock_file)
+    pub fn from_file<P: AsRef<Path>>(path: P) -> Result<Self, PubspecLockError> {
+        let path = path.as_ref().to_owned();
+        let contents = fs::read_to_string(&path).map_err(|e| PubspecLockError::IoError {
+            path: path.clone(),
+            source: e,
+        })?;
+
+        serde_yaml::from_str(&contents).map_err(|e| PubspecLockError::YamlError {
+            path,
+            source: e,
+        })
     }
+}
+
+
+#[derive(Error, Debug)]
+pub enum PubspecLockError {
+    #[error("Failed to read file at {path}: {source}")]
+    IoError {
+        path: PathBuf,
+        #[source]
+        source: io::Error,
+    },
+    #[error("Failed to parse YAML from {path}: {source}")]
+    YamlError {
+        path: PathBuf,
+        #[source]
+        source: serde_yaml::Error,
+    },
 }
